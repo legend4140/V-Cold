@@ -13,10 +13,12 @@
         h1 {
             font-size: 64px;
             color: white;
-            font-family: "Brush Script MT", cursive;
-            font-style: italic;
+            font-family:  Luminari,fantasy ;
+            border: black;
+            border-radius: 50%;
+            font-style:  bold;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-             text-align: center;
+            text-align: center;
         }
 
         h2 {
@@ -31,9 +33,9 @@
             margin-bottom: 20px;
         }
 
-        .btn {
-            background-color: #007bff;
-            border: 3px solid #000;
+         .btn {
+            background-color: #2ecc71;
+            border: none;
             border-radius: 50%;
             color: #fff;
             cursor: pointer;
@@ -43,40 +45,83 @@
             line-height: 100px;
             margin: 10px;
             width: 100px;
-            transition: background-color 0.3s ease-in-out;
-        }
-
-        #start-btn {
-            background-color: #2ecc71;
+            transition: transform 0.3s ease-in-out;
             box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+            perspective: 800px;
+        }
+         .btn-image {
+    background-image: url("img.png");
+    background-size: cover;
+    background-position: center;
+}
+        .btn:before,
+        .btn:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease-in-out;
         }
 
-        #stop-btn {
+        .btn:before {
+            transform: translateZ(6px);
+        }
+
+        .btn:after {
+            transform: translateZ(-6px);
+        }
+
+        .btn:hover {
+            transform: translateZ(12px);
+        }
+
+        .btn:hover:before {
+            transform: translateZ(6px) scale(0.9);
+        }
+
+        .btn:hover:after {
+            transform: translateZ(-6px) scale(0.9);
+        }
+
+        .btn.stop {
             background-color: #e74c3c;
-            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .btn-text {
-            font-size: 18px;
-            margin-top: 5px;
-            font-weight: bold;
+        .btn.spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         #output {
-            background-color: #fff;
+            background-color: rgba(255, 255, 255, 0.5);
             border-radius: 5px;
             margin: 20px auto;
             padding: 20px;
             width: 400px;
+            box-shadow: none;
         }
 
         #output h2 {
-            color: #666;
+            text-align: center;
+            color: #000;
             margin-bottom: 10px;
         }
 
         #result {
-            color: #333;
+            color: #000;
             font-size: 18px;
             margin: 0;
         }
@@ -85,15 +130,16 @@
             margin-top: 20px;
             max-width: 100%;
             height: auto;
+            opacity: 0.9;
         }
 
         #copyright {
             margin-top: 20px;
-        color: #fff; /* Change the color to white */
-        font-size: 20px;
-        text-align: center;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text-shadow property */
-    }
+            color: #fff;
+            font-size: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
@@ -101,8 +147,9 @@
     <h1>V-Cold Website</h1>
     <div id="btn-container">
         <h2>Click the button and speak to get the result:</h2>
-        <button id="start-btn" class="btn"><i class="fas fa-microphone"></i><span class="btn-text">START</span></button>
-        <button id="stop-btn" class="btn"><i class="fas fa-stop"></i><span class="btn-text">STOP</span></button>
+        <button id="toggle-btn" class="btn start btn-image">
+    <i class="fas fa-microphone"></i>
+</button>
     </div>
 
     <div id="output">
@@ -110,67 +157,76 @@
         <p id="result"></p>
     </div>
 
-    <div id="output">
+    <div id="output" style="background-color: rgba(255, 255, 255, 0.5);">
+
         <p id="result"></p>
-        <h3>Powered By:</h3>
+<h3><Powered By:</h3>
+
         <img id="IEM" src="yzu iem.jpg" alt="IEM">
     </div>
-
-    <div id="copyright">
+ <div id="copyright">
         &copy; Joydeep C. 2023
     </div>
 
     <script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
     <script>
-        var startBtn = document.getElementById('start-btn');
-        var stopBtn = document.getElementById('stop-btn');
-        var resultDisplay = document.getElementById('result');
-        var mediaRecorder;
-        var audioChunks = [];
+    var toggleBtn = document.getElementById('toggle-btn');
+    var resultDisplay = document.getElementById('result');
+    var mediaRecorder;
+    var audioChunks = [];
+    var isRecording = false;
 
-        startBtn.addEventListener('click', function () {
+    toggleBtn.addEventListener('click', function () {
+        if (isRecording) {
+            mediaRecorder.stop();
+            toggleBtn.classList.remove('stop');
+            toggleBtn.classList.add('start');
+            toggleBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            isRecording = false;
+            var audioBlob = new Blob(audioChunks, { 'type': 'audio/wav' });
+            var audioUrl = URL.createObjectURL(audioBlob);
+            var audio = new Audio(audioUrl);
+            audio.play();
+            audioChunks = [];
+
+            // Send the audio data to the server using AJAX
+            var formData = new FormData();
+            formData.append('audio', audioBlob);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/detect_cold');
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    resultDisplay.textContent = xhr.responseText;
+                } else {
+                    resultDisplay.textContent = 'Error occurred during audio processing.';
+                }
+            };
+            xhr.onerror = function () {
+                resultDisplay.textContent = 'Error occurred during audio processing.';
+            };
+            xhr.send(formData);
+        } else {
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(function (stream) {
                     mediaRecorder = new MediaRecorder(stream);
                     mediaRecorder.start();
 
-                    startBtn.disabled = true;
-                    stopBtn.disabled = false;
-                    resultDisplay.textContent = '';
-                    audioChunks = [];
+                    toggleBtn.classList.remove('start');
+                    toggleBtn.classList.add('stop');
+                    toggleBtn.innerHTML = '<i class="fas fa-stop"></i>';
 
                     mediaRecorder.addEventListener('dataavailable', function (event) {
                         audioChunks.push(event.data);
                     });
+                })
+                .catch(function (error) {
+                    console.error('Error:', error);
                 });
-        });
 
-        stopBtn.addEventListener('click', function () {
-            mediaRecorder.stop();
-
-            stopBtn.disabled = true;
-            startBtn.disabled =false;
-
-            var audioBlob = new Blob(audioChunks);
-            var audioFile = new File([audioBlob], 'audio.wav');
-
-            var formData = new FormData();
-            formData.append('audio', audioFile);
-
-            $.ajax({
-                type: 'POST',
-                url: '/detect_cold',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    resultDisplay.textContent = response.result;
-                },
-                error: function () {
-                    resultDisplay.textContent = 'Error occurred during audio processing.';
-                }
-            });
-        });
-    </script>
+            isRecording = true;
+        }
+    });
+</script>
 </body>
 </html>
